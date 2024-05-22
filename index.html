@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Generar Gráfico de Barras desde CSV</title>
+    <!-- Incluir ChartJS desde el CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Incluir Papaparse desde el CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <style>
+        #casesChart {
+            max-width: 600px;
+            max-height: 300px;
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generar Gráfico de Barras desde CSV</h1>
+    <!-- Input para cargar el archivo CSV -->
+    <input type="file" id="csvFileInput" accept=".csv">
+    <!-- Botón para generar el gráfico -->
+    <button onclick="generateChart()">Generar Gráfico</button>
+    <!-- Lienzo para el gráfico -->
+    <canvas id="casesChart"></canvas>
+
+    <script>
+        // Función para leer el archivo CSV cargado
+        function readCSVFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const text = event.target.result;
+                    const data = Papa.parse(text, { header: true, skipEmptyLines: true }).data;
+                    resolve(data);
+                };
+                reader.onerror = function() {
+                    reject(new Error("Error al leer el archivo CSV"));
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        // Función para procesar los datos del CSV
+        function processCasesData(data) {
+            console.log("Complete Data:", data); // Verificar los datos completos
+
+            // Verificar que el archivo CSV tiene datos
+            if (data.length === 0) {
+                throw new Error("El archivo CSV no contiene datos.");
+            }
+
+            // Mapear los datos correctamente de acuerdo a las columnas específicas
+            const ids = data.map(caso => caso.Id);
+            const hours = data.map(caso => caso["hs-ACAP-x-est"]);
+            console.log("IDs:", ids);  // Verificar los IDs
+            console.log("Hours:", hours);  // Verificar las horas
+            return { ids, hours };
+        }
+
+        // Función para crear el gráfico
+        function createChart(data) {
+            const ctx = document.getElementById('casesChart').getContext('2d');
+            const casesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.ids,
+                    datasets: [{
+                        label: 'Horas ACAP x estudiante',
+                        data: data.hours,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Id'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'hs-ACAP-x-est'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Función principal para generar el gráfico
+        async function generateChart() {
+            const fileInput = document.getElementById('csvFileInput');
+            if (fileInput.files.length === 0) {
+                alert("Por favor, cargue un archivo CSV.");
+                return;
+            }
+            const file = fileInput.files[0];
+            try {
+                const data = await readCSVFile(file);
+                const processedData = processCasesData(data);
+                createChart(processedData);
+            } catch (error) {
+                console.error(error);
+                alert("Error al obtener o procesar el archivo CSV.");
+            }
+        }
+    </script>
+</body>
+</html>
